@@ -1,0 +1,49 @@
+# CONTESTO DEL PROGETTO
+Sei un assistente per il "vibe coding" di un gestionale didattico (Progetto SIFORM / Polo Urbani).
+L'ambiente lavora in LIVE SYNC FTP su Altervista: ogni salvataggio va online istantaneamente.
+
+# REGOLE DI COMUNICAZIONE OBBLIGATORIE (MOLTO IMPORTANTE)
+Ad ogni singola modifica al codice che effettui, DEVI ASSOLUTAMENTE:
+1. Elencare all'utente in modo chiaro quali file hai toccato/modificato.
+2. Ricordare all'utente di salvare il punto di ripristino fornendo i comandi Git da copiare e incollare nel terminale. Esempio:
+   "Ricordati di fare il commit delle modifiche! Esegui:
+   git add .
+   git commit -m 'Breve descrizione della modifica'
+   git push"
+
+# STACK TECNOLOGICO E REGOLE DI CODICE
+- Backend: PHP (Procedurale, NO OOP, NO Framework).
+- Database: MySQL via `mysqli` (connessione tramite `db.php`). Usa sempre `mysqli_real_escape_string`.
+- Frontend: HTML5 puro, CSS inline o blocchi `<style>`, Vanilla JS. NO Bootstrap/Tailwind.
+- UI/UX: Layout compatti, tabelle HTML, emoji usate come icone. Feedback visivi: verde `#dff0d8` (successo), rosso `#f2dede` (errore).
+- Gestisci i reindirizzamenti post-salvataggio tramite `header("Location: ...")` o `window.location.replace` seguiti da `exit()`.
+
+# STRUTTURA DEL DATABASE (MYSQL)
+Usa queste tabelle e campi per formulare le query:
+
+## TABELLE ANAGRAFICHE
+- `formatore` (emailf PK, nome, cognome, tipo, note)
+- `docente_discente` (email_dd PK, nome, cognome)
+- `classe` (idc PK AI, nome, sede, numero_studenti_totali)
+- `studente` (ids PK AI, idc FK, cognome, nome)
+
+## TABELLE CORE
+- `iniziativa` (idi PK AI, titolo, ore_previste, nome_siform, categoria, data_comunicazione_siform, data_inizio, data_fine, note, google_meet_link)
+- `attivita` (ida PK AI, tipo, data, ora_inizio, ora_fine, partecipazione enum, sede, idi FK, ore, note, google_meet_link)
+- `dettaglio_timesheet` (id_ts PK AI, idi FK, emailf FK, data, ore, ora_inizio, ora_fine, descrizione)
+
+## TABELLE PONTE (ASSOCIAZIONE INIZIATIVA -> RISORSE)
+- `siform_iniziativa_formatore` (idi PK, emailf PK, ore_totali_assegnate, ore_svolte, costo_orario)
+- `siform_iniziativa_docentediscente` (idi PK, email_dd PK)
+- `siform_iniziativa_classe` (idi PK, idc PK)
+
+## TABELLE PONTE (ASSOCIAZIONE LEZIONE/ATTIVITÀ -> RISORSE E FIRME)
+- `assegnazione_formatore_attivita` (ida PK, emailf PK, modalita_effettiva, ore_effettive)
+- `assegnazione_docente_attivita` (ida PK, email_dd PK, modalita_effettiva, ore_effettive)
+- `assegnazione_classe_attivita` (ida PK, idc PK)
+- Tabelle legacy (usare con cautela se non richieste esplicitamente): `presenza_classe_attivita`, `presenza_docentediscente_attivita`, `presenza_formatore_attivita`.
+
+# DIVIETI ASSOLUTI
+- Non modificare MAI il file `.vscode/sftp.json`.
+- Non salvare MAI codice PHP con errori di sintassi che potrebbero rompere l'ambiente live.
+- Avvisa sempre l'utente se un refactoring è massiccio e aspetta il suo "ok" prima di procedere.

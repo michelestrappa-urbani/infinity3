@@ -8,6 +8,7 @@
         <!-- UNIFORMATI: Aggiunte le classi corrette e i colori semantici dedicati -->
         <a href="report_docenti_svolto.php" class="nav-link-item nav-link-purple">🎓 Report Frequenza Discenti</a>
         <a href="report_ore_staff.php" class="nav-link-item nav-link-teal">⏱️ Analisi Ore Staff</a>
+        <a href="index_info.php" target="_blank" class="nav-link-item" style="color: #38bdf8; font-weight: 600;" title="Visualizzazione sola lettura di iniziative e calendari">👁️ Portale Consultazione</a>
     </div>
     <div class="nav-group-actions">
         <a href="login.php?action=logout" class="nav-logout-btn">🚪 Esci</a>

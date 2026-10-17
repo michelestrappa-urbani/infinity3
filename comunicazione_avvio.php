@@ -63,7 +63,7 @@ if ($has_classi) {
 }
 
 // 3. RECUPERA IL CALENDARIO TEORICO CARICATO
-$attivita_q = mysqli_query($conn, "SELECT ida, data, ora_inizio, ora_fine, ore, tipo, sede, partecipazione FROM attivita WHERE idi = $idi ORDER BY data ASC, ora_inizio ASC");
+$attivita_q = mysqli_query($conn, "SELECT ida, data, ora_inizio, ora_fine, ore, tipo, sede, partecipazione, google_meet_link FROM attivita WHERE idi = $idi ORDER BY data ASC, ora_inizio ASC");
 $giorni_it = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 
 // 4. FUNZIONE DI CONVERSIONE IMMAGINI IN BASE64 Per Word
@@ -253,8 +253,9 @@ header("Expires: 0");
 
                     $mod_part = htmlspecialchars($act['partecipazione']);
                     $is_online = (stripos($mod_part, 'FAD') !== false || stripos($mod_part, 'ONLINE') !== false || stripos($mod_part, 'Mista') !== false);
-                    if ($is_online && !empty($corso['google_meet_link'])) {
-                        $mod_part .= '<br style="mso-data-placement:same-cell;"><br style="mso-data-placement:same-cell;"><span style="font-size:7.5pt; font-weight:normal; text-transform:none; color:#555;">Meet Link:</span><br style="mso-data-placement:same-cell;"><a href="'.htmlspecialchars($corso['google_meet_link']).'" style="color:#0275d8; font-weight:bold; text-transform:none; text-decoration:underline; font-size:7.5pt;">'.htmlspecialchars($corso['google_meet_link']).'</a>';
+                    $meet_link_effettivo = !empty(trim($act['google_meet_link'] ?? '')) ? trim($act['google_meet_link']) : (!empty(trim($corso['google_meet_link'] ?? '')) ? trim($corso['google_meet_link']) : '');
+                    if ($is_online && !empty($meet_link_effettivo)) {
+                        $mod_part .= '<br style="mso-data-placement:same-cell;"><br style="mso-data-placement:same-cell;"><span style="font-size:7.5pt; font-weight:normal; text-transform:none; color:#555;">Meet Link:</span><br style="mso-data-placement:same-cell;"><a href="'.htmlspecialchars($meet_link_effettivo).'" style="color:#0275d8; font-weight:bold; text-transform:none; text-decoration:underline; font-size:7.5pt;">'.htmlspecialchars($meet_link_effettivo).'</a>';
                     }
             ?>
                 <tr>

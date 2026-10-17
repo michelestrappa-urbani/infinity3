@@ -6,10 +6,36 @@ error_reporting(E_ALL);
 // include('auth.php'); // DISATTIVATO TEMPORANEAMENTE PER ACCESSO LIBERO
 include('db.php');
 include('navbar.php');
+include('funzioni_firme.php');
 
 $idi = isset($_GET['idi']) ? (int)$_GET['idi'] : 0;
 $ida = isset($_GET['ida']) ? (int)$_GET['ida'] : 0;
 $success_msg = "";
+$error_msg = "";
+
+// ==========================================
+// AZIONE: FIRMA MASSIVA AUTOMATICA (GLOBALE)
+// ==========================================
+if (isset($_POST['firma_massiva_globale'])) {
+    $res_f = esegui_firma_massiva($conn, 0);
+    if ($res_f['success']) {
+        $success_msg = "✅ " . $res_f['messaggio'];
+    } else {
+        $error_msg = "❌ " . $res_f['messaggio'];
+    }
+}
+
+// ==========================================
+// AZIONE: FIRMA MASSIVA AUTOMATICA (SINGOLO CORSO)
+// ==========================================
+if (isset($_POST['firma_massiva_corso']) && $idi > 0) {
+    $res_f = esegui_firma_massiva($conn, $idi);
+    if ($res_f['success']) {
+        $success_msg = "✅ " . $res_f['messaggio'];
+    } else {
+        $error_msg = "❌ " . $res_f['messaggio'];
+    }
+}
 
 // ==========================================
 // AZIONE: SALVATAGGIO DELLE PRESENZE E ORE REALI
@@ -80,7 +106,7 @@ if ($ida > 0) {
     $formatori_res = mysqli_query($conn, "SELECT f.emailf, f.nome, f.cognome FROM siform_iniziativa_formatore sif JOIN formatore f ON sif.emailf = f.emailf WHERE sif.idi = $idi ORDER BY f.cognome");
     $docenti_res = mysqli_query($conn, "SELECT d.email_dd, d.nome, d.cognome FROM siform_iniziativa_docentediscente sidd JOIN docente_discente d ON sidd.email_dd = d.email_dd WHERE sidd.idi = $idi ORDER BY d.cognome");
 } elseif ($idi > 0) {
-    $ini = mysqli_fetch_assoc(mysqli_query($conn, "SELECT titolo, nome_siform FROM iniziativa WHERE idi = $idi"));
+    $ini = mysqli_fetch_assoc(mysqli_query($conn, "SELECT titolo, nome_siform, categoria FROM iniziativa WHERE idi = $idi"));
     $titolo_corso = !empty($ini['titolo']) ? $ini['titolo'] : $ini['nome_siform'];
     $attivita_res = mysqli_query($conn, "SELECT * FROM attivita WHERE idi = $idi ORDER BY data, ora_inizio");
 } else {
@@ -89,7 +115,8 @@ if ($ida > 0) {
 ?>
 
 <div style="font-family: sans-serif; padding: 10px;">
-    <?php if(!empty($success_msg)): ?> <div style="background:#dff0d8; color:#3c763d; padding:12px; margin-bottom:20px; border:1px solid #d6e9c6; border-radius:4px;"><?php echo $success_msg; ?></div> <?php endif; ?>
+    <?php if(!empty($success_msg)): ?> <div style="background:#dff0d8; color:#3c763d; padding:12px; margin-bottom:20px; border:1px solid #d6e9c6; border-radius:4px; font-weight:bold;"><?php echo $success_msg; ?></div> <?php endif; ?>
+    <?php if(!empty($error_msg)): ?> <div style="background:#f2dede; color:#a94442; padding:12px; margin-bottom:20px; border:1px solid #ebccd1; border-radius:4px; font-weight:bold;"><?php echo $error_msg; ?></div> <?php endif; ?>
 
     <?php if ($ida > 0): ?>
         <h2>✍️ Compilazione Registro Firme e Computo Ore</h2>
@@ -174,10 +201,29 @@ if ($ida > 0) {
         }
         </script>
 
-    <?php elseif ($idi > 0): ?>
-        <h2>✍️ Seleziona la Lezione da Firmare</h2>
-        <h3>Corso: <span style="color:#0275d8;"><?php echo htmlspecialchars($titolo_corso); ?></span></h3>
-        <a href="foglio_firme.php" class="btn btn-blue" style="background:#777; margin-bottom:15px; text-decoration:none; color:white;">⬅️ Torna indietro</a>
+    <?php elseif ($idi > 0): 
+        $cat_ammessa_corso = is_categoria_ammessa_firme($ini['categoria'] ?? '');
+    ?>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h2 style="margin:0 0 5px 0;">✍️ Seleziona la Lezione da Firmare</h2>
+                <h3 style="margin:0; font-weight:normal;">Corso: <strong style="color:#0275d8;"><?php echo htmlspecialchars($titolo_corso); ?></strong> <small style="color:#64748b;">(<?php echo htmlspecialchars($ini['categoria'] ?? ''); ?>)</small></h3>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <?php if ($cat_ammessa_corso): ?>
+                    <form method="POST" style="margin:0;" onsubmit="return confirm('Confermi la firma automatica (Tutti in Presenza) di tutte le lezioni di questo corso?\n\n- I formatori e i docenti discenti caricati per ogni sessione saranno registrati come Presenti.\n- Le presenze e le firme già inserite NON verranno sovrascritte.\n- Nessun calendario o orario verrà modificato.');">
+                        <button type="submit" name="firma_massiva_corso" class="btn" style="background:#16a34a; color:white; padding:9px 16px; font-weight:bold; border:none; border-radius:4px; font-size:13px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                            ⚡ Firma Tutte le Lezioni (Tutti in Presenza)
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <span style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; padding:6px 12px; font-size:12px; font-weight:bold; border-radius:4px;">
+                        ℹ️ Firma massiva esclusa per Formazione dei Formatori
+                    </span>
+                <?php endif; ?>
+                <a href="foglio_firme.php" class="btn btn-blue" style="background:#777; padding:9px 14px; text-decoration:none; color:white; font-size:13px; border-radius:4px; font-weight:bold;">⬅️ Torna indietro</a>
+            </div>
+        </div>
         <table>
             <tr style="background:#f5f5f5;"><th>Data e Orario</th><th>Durata Lezione</th><th>Tipo di Attività</th><th>Modalità</th><th>Sede</th><th>Azione</th></tr>
             <?php while($row = mysqli_fetch_assoc($attivita_res)): ?>
@@ -193,6 +239,25 @@ if ($ida > 0) {
         </table>
     <?php else: ?>
         <h2>✍️ Registro d'Aula: Gestione Fogli Firme SIFORM</h2>
+
+        <!-- BOX FIRMA MASSIVA AUTOMATICA -->
+        <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; padding:15px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div>
+                <h3 style="margin:0 0 5px 0; color:#166534; font-size:16px;">⚡ Firma Automatica Attività Calendarizzate (Tutti in Presenza)</h3>
+                <p style="margin:0; font-size:13px; color:#15803d; line-height:1.4;">
+                    Firma in un clic tutte le sessioni a calendario per: <strong>Sperimentazione (B.1.8)</strong>, <strong>Accompagnamento e implementazione (B.1.9)</strong> e <strong>Attività con i destinatari (B.1.13)</strong>.<br>
+                    <span style="color:#475569; font-size:12px;">🛡️ I formatori e i docenti discenti caricati nelle sessioni vengono registrati come Presenti con le rispettive ore. Le presenze già caricate NON sono sovrascritte. I corsi di Formazione dei Formatori (B.1.7) restano invariati.</span>
+                </p>
+            </div>
+            <div>
+                <form method="POST" style="margin:0;" onsubmit="return confirm('Confermi la firma automatica (Tutti in Presenza) per TUTTE le attività di calendario ammesse?\n\nCategorie incluse:\n- B.1.8 Sperimentazione\n- B.1.9 Accompagnamento e implementazione\n- B.1.13 Attività con i destinatari\n\n- Nessuna presenza già esistente verrà sovrascritta.\n- I corsi di Formazione dei Formatori NON verranno modificati.');">
+                    <button type="submit" name="firma_massiva_globale" class="btn btn-green" style="background:#16a34a; color:white; padding:12px 18px; font-weight:bold; border:none; border-radius:5px; cursor:pointer; font-size:14px; white-space:nowrap; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                        ⚡ Firma Tutte le Attività Ammesse
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <table>
             <tr style="background:#f5f5f5;"><th>Iniziativa / Progetto</th><th>Macro-Categoria SIFORM</th><th>Azione</th></tr>
             <?php while($row = mysqli_fetch_assoc($iniziative_res)): 

@@ -7,6 +7,7 @@ error_reporting(E_ALL);
 // include('auth.php'); // RIMOSSO PER EVITARE I BLOCCHI DELLA LOGIN
 include('db.php');
 include('navbar.php');
+include('funzioni_firme.php');
 
 $idi = isset($_GET['idi']) ? (int)$_GET['idi'] : 0;
 $action = isset($_GET['action']) ? $_GET['action'] : '';
@@ -34,6 +35,18 @@ if (!$corso) {
 }
 $titolo_corso = !empty($corso['titolo']) ? $corso['titolo'] : $corso['nome_siform'];
 $giorni_it = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+
+// ==========================================
+// AZIONE: FIRMA MASSIVA AUTOMATICA SESSIONI DEL CORSO
+// ==========================================
+if (isset($_POST['azione_firma_massiva_calendario'])) {
+    $res_f = esegui_firma_massiva($conn, $idi);
+    if ($res_f['success']) {
+        $success_message = "✅ " . $res_f['messaggio'];
+    } else {
+        $error_message = "❌ " . $res_f['messaggio'];
+    }
+}
 
 // ==========================================
 // AZIONE: SALVATAGGIO NUOVA ATTIVITÀ (INSERIMENTO)
@@ -195,8 +208,15 @@ if ($action === 'delete_attivita' && $id_attivita > 0) {
             <h2 style="margin:0; color:#1e293b;">🗓️ Calendario Sessioni Didattiche</h2>
             <h3 style="margin:5px 0 0 0; color:#475569; font-weight:normal;"><?php echo htmlspecialchars($titolo_corso); ?></h3>
         </div>
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; align-items:center;">
             <?php if(empty($action)): ?>
+                <?php if (is_categoria_ammessa_firme($corso['categoria'])): ?>
+                    <form method="POST" style="margin:0;" onsubmit="return confirm('Confermi la firma automatica (Tutti in Presenza) di tutte le sessioni di questo corso?\n\n- I formatori e i docenti discenti abbinati a ciascuna sessione saranno registrati come Presenti.\n- Le firme e le presenze già inserite NON saranno sovrascritte.\n- Nessuna attività o orario verrà modificato.');">
+                        <button type="submit" name="azione_firma_massiva_calendario" class="btn" style="background:#16a34a; color:white; padding:10px 15px; font-weight:bold; border:none; border-radius:4px; font-size:14px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                            ⚡ Firma Tutte le Sessioni (Tutti in Presenza)
+                        </button>
+                    </form>
+                <?php endif; ?>
                 <a href="calendario.php?idi=<?php echo $idi; ?>&amp;action=add_attivita" class="btn btn-green" style="font-weight:bold; font-size:14px; padding:10px 15px; text-decoration:none;">➕ Aggiungi Lezione / Sessione</a>
             <?php endif; ?>
             <a href="index.php" class="btn" style="background:#475569; color:white; text-decoration:none; padding:10px 15px; border-radius:4px; font-weight:bold; font-size:14px;">⬅️ Torna alla Dashboard</a>
